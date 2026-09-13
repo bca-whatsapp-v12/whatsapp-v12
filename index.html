@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WhatsApp V12</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif}
+body{height:100vh;overflow:hidden;background:#111b21}
+.app{display:flex;height:100vh;width:100vw}
+.sidebar{width:100%;background:#111b21;display:flex;flex-direction:column}
+@media(min-width:768px){.sidebar{width:35%;min-width:340px;border-right:1px solid #222d34}}
+.top-bar{background:#202c33;height:60px;display:flex;align-items:center;padding:0 14px;gap:12px;color:white}
+.my-dp{width:40px;height:40px;border-radius:50%;background:#00a884;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer;overflow:hidden}
+.my-dp img{width:100%;height:100%;object-fit:cover}
+.tabs{display:flex;background:#202c33}
+.tabs div{flex:1;padding:14px;text-align:center;color:#8696a0;cursor:pointer;font-weight:bold}
+.tabs div.active{color:#00a884;border-bottom:3px solid #00a884}
+.contact{padding:12px 14px;display:flex;gap:12px;align-items:center;color:white;cursor:pointer}
+.dp{width:49px;height:49px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;flex-shrink:0;overflow:hidden}
+.dp img{width:100%;height:100%;object-fit:cover}
+.dp-ring{padding:2px;border:2.5px solid #00a884;border-radius:50%}
+.chat{position:fixed;inset:0;background:#0b141a;display:flex;flex-direction:column;z-index:10;transform:translateX(100%);transition:0.25s ease}
+.chat.open{transform:translateX(0)}
+@media(min-width:768px){.chat{position:relative;transform:none;flex:1}.chat.open{transform:none}}
+.chat-head{height:60px;background:#202c33;color:white;display:flex;align-items:center;padding:0 10px;gap:10px}
+.back{font-size:22px;padding:8px;cursor:pointer}
+#messages{flex:1;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.bubble{max-width:75%;padding:8px 10px;border-radius:8px;font-size:14.5px}
+.me{align-self:flex-end;background:#005c4b;color:white}
+.other{align-self:flex-start;background:#202c33;color:white}
+.time{font-size:10px;color:#ffffff99;margin-left:8px;float:right;margin-top:4px}
+.input-area{padding:8px;background:#202c33;display:flex;gap:8px}
+.input-area input{flex:1;padding:12px 16px;border-radius:24px;border:none;background:#2a3942;color:white;outline:none}
+.send{width:44px;height:44px;border-radius:50%;background:#00a884;border:none;color:white;font-size:20px}
+#videoBox,#statusView{position:fixed;inset:0;background:black;z-index:99;display:none;flex-direction:column}
+#videos{flex:1;position:relative}#videos video{position:absolute;width:100%;height:100%;object-fit:cover}
+#local{width:110px!important;height:150px!important;right:12px;bottom:80px;border-radius:12px;border:2px solid white;z-index:2;position:absolute}
+.ctrl{padding:18px;background:#202c33;display:flex;justify-content:center}.end{width:56px;height:56px;border-radius:50%;background:#ea0038;border:none;color:white;font-size:24px}
+.badge{margin-left:auto;background:#00a884;color:#111b21;font-size:11px;padding:2px 7px;border-radius:12px;font-weight:bold}
+.last{color:#8696a0;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-bar{height:3px;background:rgba(255,255,255,0.3);margin:6px;border-radius:10px;overflow:hidden}.prog{height:100%;width:0%;background:white}
+</style></head><body>
+<div class="app">
+<div class="sidebar" id="side">
+<div class="top-bar"><div class="my-dp" id="topDp" onclick="uploadMyDp()">C</div><b style="flex:1">WhatsApp</b><span>🔍</span><span style="margin-left:10px">⋮</span></div>
+<div class="tabs"><div class="active" id="t1" onclick="showTab('chat')">Chats</div><div id="t2" onclick="showTab('status')">Status</div><div>Calls</div></div>
+<div id="chatList">
+<div class="contact" onclick="openChat('BCA Group','BG','#00a884')"><div class="dp" style="background:#00a884">BG</div><div style="flex:1"><b>BCA Group</b><div class="last" id="last-BCA Group">BCA friends</div></div></div>
+<div class="contact" onclick="openChat('Appu❤️','A','#e542a3')"><div class="dp" style="background:#e542a3">A</div><div style="flex:1"><b>Appu❤️</b><div class="last" id="last-Appu❤️">❤️ My Boyfriend</div></div><div class="badge" id="badge-Appu❤️" style="display:none">0</div></div>
+<div class="contact" onclick="openChat('Chai🥰','C','#00a884')"><div class="dp" style="background:#00a884">C</div><div style="flex:1"><b>Chai🥰</b><div class="last" id="last-Chai🥰">Tap</div></div></div>
+<div class="contact" onclick="openChat('shashi🥰','S','#1f7aec')"><div class="dp" style="background:#1f7aec">S</div><div style="flex:1"><b>shashi🥰</b><div class="last" id="last-shashi🥰">Tap</div></div></div>
+<div class="contact" onclick="openChat('vaishnavi 🥰','V','#ffbc38')"><div class="dp" style="background:#ffbc38;color:#000">V</div><div style="flex:1"><b>vaishnavi 🥰</b><div class="last" id="last-vaishnavi 🥰">Tap</div></div></div>
+<div class="contact" onclick="openChat('V4💕💕','V4','#a884ff')"><div class="dp" style="background:#a884ff">V4</div><div style="flex:1"><b>V4💕💕</b><div class="last" id="last-V4💕💕">Tap</div></div></div>
+</div>
+<div id="statusList" style="display:none">
+<div class="contact" onclick="addStatus()"><div class="dp" id="myDp" style="border:2px dashed #8696a0;background:#202c33">+</div><div><b>My Status</b><br><small style="color:#8696a0" id="myTime">Tap to add - 24h</small></div></div>
+<div style="padding:8px 14px;color:#8696a0;font-size:13px">Recent updates</div><div id="otherStatus"></div>
+</div>
+</div>
+<div class="chat" id="chatPage">
+<div class="chat-head"><span class="back" onclick="closeChat()">←</span><div class="dp" id="headDp" style="width:40px;height:40px;background:#00a884">BG</div><div style="flex:1"><b id="chatName">BCA Group</b><br><small style="color:#8696a0;font-size:11px">online</small></div><span style="font-size:22px" onclick="startCall()">📹</span></div>
+<div id="messages"></div><div class="input-area"><input id="msgInput" placeholder="Type a message"><button class="send" onclick="sendMsg()">➤</button></div>
+</div>
+</div>
+<div id="videoBox"><div id="videos"><video id="remote" autoplay playsinline></video><video id="local" autoplay muted playsinline></video></div><div class="ctrl"><button class="end" onclick="endCall()">✕</button></div></div>
+<div id="statusView" style="display:none;z-index:20"><div class="status-bar"><div class="prog" id="prog"></div></div><div style="padding:14px;color:white;display:flex;justify-content:space-between"><b id="sName"></b><span onclick="closeStatus()" style="font-size:28px">✕</span></div><div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column"><img id="sImg" style="max-width:100%;max-height:75vh;border-radius:10px"><div id="sTime" style="color:white;margin-top:10px"></div></div></div>
+<input type="file" id="fileIn" hidden accept="image/*"><input type="file" id="dpIn" hidden accept="image/*">
+<script>
+var socket=io();var myName=prompt("Your name?")||"Chaitra";var active="BCA Group";var pc,localStream;var allStatus=[];var myDpUrl=null;
+document.getElementById("topDp").innerText=myName[0].toUpperCase();
+function showTab(t){document.getElementById("chatList").style.display=t==="chat"?"block":"none";document.getElementById("statusList").style.display=t==="status"?"block":"none";document.getElementById("t1").classList.toggle("active",t==="chat");document.getElementById("t2").classList.toggle("active",t==="status");}
+function openChat(name,init,color){active=name;document.getElementById("chatName").innerText=name;document.getElementById("headDp").innerHTML=init;document.getElementById("headDp").style.background=color;document.getElementById("chatPage").classList.add("open");let b=document.getElementById("badge-"+name);if(b){b.style.display="none";b.innerText="0";}socket.emit("load_chat",{chat:name});}
+function closeChat(){document.getElementById("chatPage").classList.remove("open");}
+function sendMsg(){var i=document.getElementById("msgInput");if(!i.value.trim())return;socket.emit("message",{user:myName,text:i.value,chat:active,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});i.value="";}
+socket.on("chat_history",d=>{let b=document.getElementById("messages");b.innerHTML="";d.forEach(addB);});
+socket.on("message",d=>{if(d.chat===active)addB(d);let l=document.getElementById("last-"+d.chat);if(l)l.innerText=d.user+": "+d.text.substring(0,22);if(d.chat!==active&&d.user!==myName){let bd=document.getElementById("badge-"+d.chat);if(bd){bd.style.display="block";bd.innerText=parseInt(bd.innerText||0)+1;}}});
+function addB(d){var m=document.createElement("div");m.className="bubble "+(d.user===myName?"me":"other");m.innerHTML=`${d.text}<span class="time">${d.time||""}</span>`;document.getElementById("messages").appendChild(m);document.getElementById("messages").scrollTop=99999;}
+socket.emit("get_status");socket.emit("load_chat",{chat:active});
+socket.on("all_status",a=>{allStatus=a;render()});socket.on("new_status",a=>{allStatus=a;render()});
+function render(){let div=document.getElementById("otherStatus");div.innerHTML="";let my=allStatus.filter(s=>s.user===myName);if(my.length>0){document.getElementById("myDp").innerHTML=`<img src="${my[0].img}">`;document.getElementById("myTime").innerText="Expires in "+my[0].left;}allStatus.filter(s=>s.user!==myName).forEach(s=>{div.innerHTML+=`<div class="contact" onclick="viewStatus('${s.user}','${s.img}','${s.left}')"><div class="dp-ring"><div class="dp" style="background:${s.color}">${s.user[0]}</div></div><div><b>${s.user}</b><br><small style="color:#8696a0">${s.left} left</small></div></div>`;});}
+function viewStatus(n,i,l){document.getElementById("statusView").style.display="flex";document.getElementById("sName").innerText=n;document.getElementById("sImg").src=i;document.getElementById("sTime").innerText=l;let p=0,pr=document.getElementById("prog");let iv=setInterval(()=>{p++;pr.style.width=p+"%";if(p>=100){clearInterval(iv);closeStatus();}},40);}
+function closeStatus(){document.getElementById("statusView").style.display="none";document.getElementById("prog").style.width="0%";}
+function addStatus(){document.getElementById("fileIn").click();}
+document.getElementById("fileIn").onchange=e=>{let f=e.target.files[0];let r=new FileReader();r.onload=ev=>socket.emit("add_status",{user:myName,img:ev.target.result});r.readAsDataURL(f);};
+function uploadMyDp(){document.getElementById("dpIn").click();}
+document.getElementById("dpIn").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=ev=>{myDpUrl=ev.target.result;document.getElementById("topDp").innerHTML=`<img src="${myDpUrl}">`;document.getElementById("myDp").innerHTML=myDpUrl?`<img src="${myDpUrl}">`:`+`;alert("Your DP set! ❤️");};r.readAsDataURL(f);};
+async function startCall(){document.getElementById("videoBox").style.display="flex";localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});document.getElementById("local").srcObject=localStream;pc=new RTCPeerConnection();localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.ontrack=e=>document.getElementById("remote").srcObject=e.streams[0];pc.onicecandidate=e=>{if(e.candidate)socket.emit("ice",e.candidate)};let o=await pc.createOffer();await pc.setLocalDescription(o);socket.emit("offer",o);}
+socket.on("offer",async o=>{document.getElementById("videoBox").style.display="flex";localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});document.getElementById("local").srcObject=localStream;pc=new RTCPeerConnection();localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));pc.ontrack=e=>document.getElementById("remote").srcObject=e.streams[0];pc.onicecandidate=e=>{if(e.candidate)socket.emit("ice",e.candidate)};await pc.setRemoteDescription(o);let a=await pc.createAnswer();await pc.setLocalDescription(a);socket.emit("answer",a);});
+socket.on("answer",async a=>{await pc.setRemoteDescription(a);});socket.on("ice",async c=>{try{await pc.addIceCandidate(c);}catch(e){}});
+function endCall(){document.getElementById("videoBox").style.display="none";if(pc)pc.close();if(localStream)localStream.getTracks().forEach(t=>t.stop());}
+document.getElementById("msgInput").addEventListener("keypress",e=>{if(e.key==="Enter")sendMsg();});
+</script></body></html>
+  
